@@ -14,12 +14,7 @@
       <div class="header-key">
         <label class="header-key-label">填写你的 TypeSafe API Key</label>
         <div class="key-row">
-          <input
-            v-model="apiKey"
-            type="password"
-            placeholder="sk-..."
-            autocomplete="off"
-          />
+          <input v-model="apiKey" type="password" placeholder="sk-..." autocomplete="off" />
           <label class="remember" title="仅保存在本机浏览器">
             <input v-model="rememberKey" type="checkbox" />
             <span class="remember-mark"></span>
@@ -51,12 +46,8 @@
           </div>
           <div class="collapsible-body" :class="{ open: stateOpen }">
             <div>
-              <textarea
-                v-model="state"
-                rows="3"
-                placeholder="留空则省略 state，模型仅根据每个问题的 instructions 独立作答。"
-                style="margin-top: 12px"
-              />
+              <textarea v-model="state" rows="3" placeholder="留空则省略 state，模型仅根据每个问题的 instructions 独立作答。"
+                style="margin-top: 12px" />
             </div>
           </div>
         </div>
@@ -79,12 +70,7 @@
               <span class="q-num">{{ String(qi + 1).padStart(2, '0') }}</span>
               问题
             </span>
-            <button
-              v-if="questions.length > 1"
-              class="icon-btn"
-              title="删除"
-              @click="removeQuestion(qi)"
-            >
+            <button v-if="questions.length > 1" class="icon-btn" title="删除" @click="removeQuestion(qi)">
               ✕
             </button>
           </div>
@@ -98,27 +84,15 @@
           <div class="field">
             <label>类型</label>
             <div class="tabs">
-              <button
-                class="tab"
-                :class="{ active: q.type === 'noul' }"
-                @click="q.type = 'noul'"
-              >
+              <button class="tab" :class="{ active: q.type === 'noul' }" @click="q.type = 'noul'">
                 <span class="tab-name">Noul</span>
                 <span class="tab-desc">概率</span>
               </button>
-              <button
-                class="tab"
-                :class="{ active: q.type === 'choice' }"
-                @click="q.type = 'choice'"
-              >
+              <button class="tab" :class="{ active: q.type === 'choice' }" @click="q.type = 'choice'">
                 <span class="tab-name">Choice</span>
                 <span class="tab-desc">分类</span>
               </button>
-              <button
-                class="tab"
-                :class="{ active: q.type === 'score' }"
-                @click="q.type = 'score'"
-              >
+              <button class="tab" :class="{ active: q.type === 'score' }" @click="q.type = 'score'">
                 <span class="tab-name">Score</span>
                 <span class="tab-desc">评分</span>
               </button>
@@ -127,30 +101,19 @@
 
           <div class="field">
             <label>Instructions</label>
-            <textarea
-              v-model="q.instructions"
-              rows="2"
-              :placeholder="instructionsPlaceholder(q.type)"
-            />
+            <textarea v-model="q.instructions" rows="2" :placeholder="instructionsPlaceholder(q.type)" />
           </div>
 
           <!-- Choice -->
           <template v-if="q.type === 'choice'">
             <div class="field">
               <label>Criteria · 标签 : 描述</label>
-              <div
-                v-for="(item, ki) in q.criteriaMap"
-                :key="ki"
-                class="kv-row"
-              >
+              <div v-for="(item, ki) in q.criteriaMap" :key="ki" class="kv-row">
                 <input v-model="item.key" type="text" placeholder="标签" />
                 <input v-model="item.value" type="text" placeholder="描述" />
                 <button class="icon-btn" @click="q.criteriaMap.splice(ki, 1)">✕</button>
               </div>
-              <button
-                class="btn ghost small"
-                @click="q.criteriaMap.push({ key: '', value: '' })"
-              >
+              <button class="btn ghost small" @click="q.criteriaMap.push({ key: '', value: '' })">
                 + 添加选项
               </button>
             </div>
@@ -160,11 +123,7 @@
           <template v-if="q.type === 'score'">
             <div class="field">
               <label>Criteria · 有序层级（从低到高）</label>
-              <div
-                v-for="(item, ki) in q.criteriaList"
-                :key="ki"
-                class="kv-row"
-              >
+              <div v-for="(item, ki) in q.criteriaList" :key="ki" class="kv-row">
                 <span class="level-badge">{{ ki + 1 }}</span>
                 <input v-model="q.criteriaList[ki]" type="text" placeholder="层级描述" />
                 <button class="icon-btn" @click="q.criteriaList.splice(ki, 1)">✕</button>
@@ -187,8 +146,8 @@
         <div class="panel-head">
           <h2>输出</h2>
           <span class="panel-tag" :class="{ 'tag-error': error }">
-          {{ error ? 'Error' : 'Output' }}
-        </span>
+            {{ error ? 'Error' : 'Output' }}
+          </span>
         </div>
 
         <transition name="fade">
@@ -211,12 +170,8 @@
         </div>
 
         <template v-if="result && !loading">
-          <div
-            v-for="(ans, idx) in result.answers"
-            :key="ans.name"
-            class="answer"
-            :style="{ '--delay': idx * 60 + 'ms' }"
-          >
+          <div v-for="(ans, idx) in result.answers" :key="ans.name" class="answer"
+            :style="{ '--delay': idx * 60 + 'ms' }">
             <div class="answer-head">
               <span class="answer-name">{{ ans.name }}</span>
               <span class="answer-type" :data-type="ans.type">{{ ans.type }}</span>
@@ -238,16 +193,12 @@
                 {{ ans.answer_description }}
               </div>
               <div v-if="ans.probabilities" class="prob-bar">
-                <div
-                  v-for="(p, k) in ans.probabilities"
-                  :key="k"
-                  class="prob-seg"
-                  :style="{ width: p * 100 + '%', background: colorFor(k) }"
-                />
+                <div v-for="(p, k, i) in ans.probabilities" :key="k" class="prob-seg"
+                  :style="{ width: p * 100 + '%', background: colorForIndex(i) }" />
               </div>
               <div v-if="ans.probabilities" class="prob-legend">
-                <span v-for="(p, k) in ans.probabilities" :key="k">
-                  <i class="dot" :style="{ background: colorFor(k) }" />
+                <span v-for="(p, k, i) in ans.probabilities" :key="k">
+                  <i class="dot" :style="{ background: colorForIndex(i) }" />
                   <span class="legend-key">{{ k }}</span>
                   <span class="legend-val">{{ pct(p) }}</span>
                 </span>
@@ -263,16 +214,12 @@
                 </span>
               </div>
               <div v-if="ans.probabilities" class="prob-bar">
-                <div
-                  v-for="(p, k) in ans.probabilities"
-                  :key="k"
-                  class="prob-seg"
-                  :style="{ width: p * 100 + '%', background: colorFor(k) }"
-                />
+                <div v-for="(p, k, i) in ans.probabilities" :key="k" class="prob-seg"
+                  :style="{ width: p * 100 + '%', background: colorForIndex(i) }" />
               </div>
               <div v-if="ans.probabilities" class="prob-legend">
-                <span v-for="(p, k) in ans.probabilities" :key="k">
-                  <i class="dot" :style="{ background: colorFor(k) }" />
+                <span v-for="(p, k, i) in ans.probabilities" :key="k">
+                  <i class="dot" :style="{ background: colorForIndex(i) }" />
                   <span class="legend-key">{{ (ans.legend && ans.legend[k]) || k }}</span>
                   <span class="legend-val">{{ pct(p) }}</span>
                 </span>
@@ -311,13 +258,8 @@
           </div>
 
           <div class="modal-tabs">
-            <button
-              v-for="fmt in formats"
-              :key="fmt.id"
-              class="modal-tab"
-              :class="{ active: exportFormat === fmt.id }"
-              @click="exportFormat = fmt.id"
-            >
+            <button v-for="fmt in formats" :key="fmt.id" class="modal-tab" :class="{ active: exportFormat === fmt.id }"
+              @click="exportFormat = fmt.id">
               {{ fmt.label }}
             </button>
           </div>
@@ -356,20 +298,12 @@
             <div class="import-actions">
               <label class="btn ghost small">
                 选择 JSON 文件
-                <input
-                  type="file"
-                  accept=".json,application/json"
-                  style="display: none"
-                  @change="onFileSelect"
-                />
+                <input type="file" accept=".json,application/json" style="display: none" @change="onFileSelect" />
               </label>
               <span class="hint" style="margin: 0">或直接粘贴到下方</span>
             </div>
 
-            <textarea
-              v-model="importText"
-              rows="10"
-              placeholder='{
+            <textarea v-model="importText" rows="10" placeholder='{
   "state": "...",
   "questions": {
     "sentiment": {
@@ -378,9 +312,7 @@
       "criteria": { "pos": "...", "neg": "..." }
     }
   }
-}'
-              class="import-textarea"
-            />
+}' class="import-textarea" />
 
             <div v-if="importError" class="hint err" style="margin-top: 8px">
               {{ importError }}
@@ -504,9 +436,9 @@ const loadExample = () => {
         criteriaMap: q.criteriaMap
           ? q.criteriaMap.map((it) => ({ ...it }))
           : [
-              { key: '', value: '' },
-              { key: '', value: '' },
-            ],
+            { key: '', value: '' },
+            { key: '', value: '' },
+          ],
         criteriaList: q.criteriaList ? [...q.criteriaList] : ['', ''],
       })
     )
@@ -514,11 +446,22 @@ const loadExample = () => {
 }
 
 // ---------- 展示工具 ----------
-const palette = ['#5b8cff', '#4ec9a8', '#e05c5c', '#d4a24e', '#c77dff', '#ffb45c']
-const colorFor = (key) => {
-  let h = 0
-  for (const c of String(key)) h = (h * 31 + c.charCodeAt(0)) % palette.length
-  return palette[h]
+const palette = [
+  '#5b8cff',
+  '#4ec9a8',
+  '#e05c5c',
+  '#d4a24e',
+  '#c77dff',
+  '#ffb45c',
+  '#5ec8e5',
+  '#7dd87d',
+  '#f06292',
+  '#a78bfa',
+]
+const colorForIndex = (i, total = palette.length) => {
+  if (i < palette.length) return palette[i]
+  const hue = (i * 137.508) % 360
+  return `hsl(${hue}, 70%, 62%)`
 }
 const pct = (v) => (v == null ? '—' : (v * 100).toFixed(1) + '%')
 
@@ -702,7 +645,7 @@ const copyExport = async () => {
     ta.select()
     try {
       document.execCommand('copy')
-    } catch (_) {}
+    } catch (_) { }
     document.body.removeChild(ta)
   }
   copySuccess.value = true
@@ -898,7 +841,7 @@ const saveSnapshot = () => {
     } else {
       localStorage.removeItem(KEY_STORAGE)
     }
-  } catch (_) {}
+  } catch (_) { }
 }
 
 const loadSnapshot = () => {
@@ -920,9 +863,9 @@ const loadSnapshot = () => {
               criteriaMap: q.criteriaMap?.length
                 ? q.criteriaMap
                 : [
-                    { key: '', value: '' },
-                    { key: '', value: '' },
-                  ],
+                  { key: '', value: '' },
+                  { key: '', value: '' },
+                ],
               criteriaList: q.criteriaList?.length ? q.criteriaList : ['', ''],
             })
           )
@@ -935,7 +878,7 @@ const loadSnapshot = () => {
       apiKey.value = savedKey
       rememberKey.value = true
     }
-  } catch (_) {}
+  } catch (_) { }
 }
 
 watch(questions, () => saveSnapshot(), { deep: true })
@@ -1126,13 +1069,13 @@ onMounted(loadSnapshot)
   flex: 0 0 auto;
 }
 
-.remember input:checked ~ .remember-mark {
+.remember input:checked~.remember-mark {
   background: var(--accent);
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
-.remember input:checked ~ .remember-mark::after {
+.remember input:checked~.remember-mark::after {
   content: '';
   width: 3px;
   height: 7px;
@@ -1141,7 +1084,7 @@ onMounted(loadSnapshot)
   transform: rotate(45deg) translate(-1px, -1px);
 }
 
-.remember input:checked ~ .remember-text {
+.remember input:checked~.remember-text {
   color: var(--text);
 }
 
@@ -1151,6 +1094,7 @@ onMounted(loadSnapshot)
     align-items: stretch;
     gap: 16px;
   }
+
   .header-key {
     flex: 0 0 auto;
   }
@@ -1338,7 +1282,7 @@ textarea {
   grid-template-rows: 1fr;
 }
 
-.collapsible-body > div {
+.collapsible-body>div {
   overflow: hidden;
 }
 
@@ -1686,6 +1630,7 @@ textarea {
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1765,10 +1710,8 @@ textarea {
   height: 46px;
   border-radius: 50%;
   flex: 0 0 auto;
-  background: conic-gradient(
-    var(--accent) var(--p, 0deg),
-    rgba(255, 255, 255, 0.06) var(--p, 0deg)
-  );
+  background: conic-gradient(var(--accent) var(--p, 0deg),
+      rgba(255, 255, 255, 0.06) var(--p, 0deg));
   position: relative;
   mask: radial-gradient(circle, transparent 58%, #000 60%);
   -webkit-mask: radial-gradient(circle, transparent 58%, #000 60%);
@@ -1907,6 +1850,7 @@ textarea {
     opacity: 0;
     transform: translateY(8px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
