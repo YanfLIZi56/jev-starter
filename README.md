@@ -3,6 +3,8 @@
 一个可视化的 Jev 控制台，帮你在浏览器里配好 Noul / Choice / Score 问题，
 试跑看效果，然后一键导出成 Python / JavaScript / cURL 代码，直接用到你自己的项目里。
 
+也可以到 `examples/` 目录中看看别人的一些案例
+
 ## 快速开始
 
 ### 启动后端
