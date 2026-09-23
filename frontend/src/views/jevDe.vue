@@ -904,6 +904,8 @@ onMounted(loadSnapshot)
   --radius: 16px;
   --radius-sm: 10px;
 
+  box-sizing: border-box;
+
   position: relative;
   min-height: 100vh;
   background: var(--bg);
@@ -1209,6 +1211,7 @@ input[type='text'],
 input[type='password'],
 textarea {
   width: 100%;
+  box-sizing: border-box;
   background: rgba(10, 12, 17, 0.6);
   border: 1px solid var(--border);
   border-radius: 9px;
@@ -1236,6 +1239,26 @@ textarea:focus {
 textarea {
   resize: vertical;
   min-height: 56px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-2) transparent;
+}
+
+textarea::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+textarea::-webkit-scrollbar-thumb {
+  background: var(--border-2);
+  border-radius: 4px;
+}
+
+textarea::-webkit-scrollbar-thumb:hover {
+  background: var(--text-2);
 }
 
 .collapsible {
