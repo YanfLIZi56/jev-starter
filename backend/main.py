@@ -3,8 +3,10 @@ Jev 结构化问答 API
 依赖安装：
     pip install fastapi uvicorn typesafe-sdk
 """
+import json
 import time
 import traceback
+from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import FastAPI, HTTPException
@@ -13,6 +15,7 @@ from pydantic import BaseModel, Field
 from typesafe_sdk import Choice, Noul, Score, TypeSafeClient, TypeSafeAPIError
 
 MODEL_NAME = "jev-latest"
+EXAMPLES_DIR = Path(__file__).parent.parent / "examples"
 
 
 # ============================================================
@@ -65,6 +68,21 @@ class AskResponse(BaseModel):
     usage: Optional[dict[str, Any]] = None
 
 
+class ExampleItem(BaseModel):
+    """单个 example 的完整数据。"""
+
+    filename: str
+    name: str
+    description: str = ""
+    author: str = ""
+    config: dict
+    cases: list = []
+
+
+class ExampleListResponse(BaseModel):
+    examples: list[ExampleItem]
+
+
 # ============================================================
 # 工具函数
 # ============================================================
@@ -113,7 +131,7 @@ def format_answer(cfg: QuestionConfig, raw: Any) -> AnswerItem:
         item.answer_description = (cfg.criteria_map or {}).get(raw.choice)
         item.confidence = round(float(raw.confidence), 4)
         if getattr(raw, "probabilities", None):
-            item.probabilities = {k: round(float(v), 4) for k, v in raw.probabilities.items()}
+            item.probabilities = {str(k): round(float(v), 4) for k, v in raw.probabilities.items()}
 
     elif cfg.type == "score":
         score = float(raw.score)
@@ -131,7 +149,7 @@ def format_answer(cfg: QuestionConfig, raw: Any) -> AnswerItem:
                 pass
 
         if getattr(raw, "probabilities", None):
-            item.probabilities = {k: round(float(v), 4) for k, v in raw.probabilities.items()}
+            item.probabilities = {str(k): round(float(v), 4) for k, v in raw.probabilities.items()}
 
     return item
 
@@ -145,6 +163,40 @@ def extract_usage(response: Any) -> Optional[dict]:
     if hasattr(u, "dict"):
         return u.dict()
     return {k: getattr(u, k, None) for k in ("input_tokens", "output_tokens")}
+
+
+def load_examples() -> list[ExampleItem]:
+    """扫描 examples 目录，返回所有合法的 example。"""
+    if not EXAMPLES_DIR.exists():
+        return []
+
+    items: list[ExampleItem] = []
+    for f in sorted(EXAMPLES_DIR.glob("*.json")):
+        if f.name.startswith("_"):
+            continue
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+        except Exception as e:
+            print(f"[examples] 跳过 {f.name}: JSON 解析失败 - {e}")
+            continue
+
+        name = data.get("name")
+        config = data.get("config")
+        if not name or not isinstance(config, dict) or "questions" not in config:
+            print(f"[examples] 跳过 {f.name}: 缺少 name 或 config.questions")
+            continue
+
+        items.append(
+            ExampleItem(
+                filename=f.name,
+                name=str(name),
+                description=str(data.get("description") or ""),
+                author=str(data.get("author") or ""),
+                config=config,
+                cases=data.get("cases") or [],
+            )
+        )
+    return items
 
 
 # ============================================================
@@ -169,6 +221,12 @@ app.add_middleware(
 @app.get("/")
 def root():
     return {"service": "Jev 结构化问答 API", "docs": "/docs"}
+
+
+@app.get("/api/examples", response_model=ExampleListResponse)
+def list_examples():
+    """返回 examples 目录下的所有示例配置。"""
+    return ExampleListResponse(examples=load_examples())
 
 
 @app.post("/api/ask", response_model=AskResponse)
