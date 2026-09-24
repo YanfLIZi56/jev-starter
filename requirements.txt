@@ -1,0 +1,9 @@
+# Web 框架
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# Jev SDK
+typesafe-sdk
+
+# 数据校验
+pydantic>=2.9.0,<3.0.0

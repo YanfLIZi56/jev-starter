@@ -10,6 +10,7 @@ from typing import Any, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from starlette.staticfiles import StaticFiles
 from typesafe_sdk import Choice, Noul, Score, TypeSafeClient, TypeSafeAPIError
 
 MODEL_NAME = "jev-latest"
@@ -166,9 +167,14 @@ app.add_middleware(
 )
 
 
-@app.get("/")
-def root():
-    return {"service": "Jev 结构化问答 API", "docs": "/docs"}
+@app.get("/api/health")
+def health():
+    return {"status": "ok"}
+
+
+@app.get("/health")
+def health_check():
+    return {"ok": True}
 
 
 @app.post("/api/ask", response_model=AskResponse)
@@ -210,6 +216,9 @@ def ask(req: AskRequest):
         usage=extract_usage(response),
     )
 
+
+# 静态资源，html=True 解决history模式刷新404
+app.mount("/", StaticFiles(directory="dist", html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn
