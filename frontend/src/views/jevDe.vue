@@ -32,6 +32,12 @@
           <span class="panel-tag">Input</span>
         </div>
 
+        <div v-if="currentExampleName" class="current-config">
+          <span class="current-config-icon">📦</span>
+          <span class="current-config-name">{{ currentExampleName }}</span>
+          <button class="current-config-clear" title="取消标记" @click="currentExampleName = ''">✕</button>
+        </div>
+
         <!-- State（可折叠） -->
         <div class="card collapsible">
           <div class="collapsible-head" @click="stateOpen = !stateOpen">
@@ -265,16 +271,66 @@
           </div>
 
           <div class="modal-body">
-            <pre class="code-block"><code>{{ exportedCode }}</code></pre>
+            <!-- 代码预览：非 example 模式 -->
+            <pre v-if="exportFormat !== 'example'" class="code-block"><code>{{ exportedCode }}</code></pre>
+
+            <!-- 导出为 Example：表单 -->
+            <div v-else class="example-form">
+              <div class="field">
+                <label>名称</label>
+                <input v-model="exampleForm.name" type="text" placeholder="例如：聊天情绪分析" />
+              </div>
+
+              <div class="field">
+                <label>描述（可选）</label>
+                <textarea v-model="exampleForm.description" rows="2" placeholder="一句话说明这个示例解决什么问题，60 字以内" />
+              </div>
+
+              <div class="field">
+                <label>作者（可选）</label>
+                <input v-model="exampleForm.author" type="text" placeholder="你的 GitHub 用户名" />
+              </div>
+
+              <div class="field">
+                <div class="example-cases-head">
+                  <label style="margin: 0">测试用例（可选）</label>
+                  <button class="btn ghost small" @click="addCase">+ 添加用例</button>
+                </div>
+
+                <div v-if="!exampleForm.cases.length" class="hint">
+                  还没有用例。添加几个能代表这个示例典型输入的 state，让别人快速理解。
+                </div>
+
+                <div v-for="(c, ci) in exampleForm.cases" :key="ci" class="case-card">
+                  <div class="case-card-head">
+                    <span class="case-index">用例 {{ ci + 1 }}</span>
+                    <button class="icon-btn" title="删除" @click="exampleForm.cases.splice(ci, 1)">✕</button>
+                  </div>
+                  <div class="field">
+                    <label>state</label>
+                    <textarea v-model="c.state" rows="3" placeholder="这个用例的输入内容" />
+                  </div>
+                  <div class="field">
+                    <label>note</label>
+                    <textarea v-model="c.note" rows="2" placeholder="期望看到什么结果，给人眼判断的参考" />
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="exampleFormError" class="hint err">{{ exampleFormError }}</div>
+            </div>
           </div>
 
           <div class="modal-foot">
-            <span v-if="exportWarn" class="hint err" style="margin-right: auto">
+            <span v-if="exportWarn && exportFormat !== 'example'" class="hint err" style="margin-right: auto">
               {{ exportWarn }}
             </span>
             <button class="btn ghost" @click="showExport = false">关闭</button>
-            <button class="btn" @click="copyExport">
+            <button v-if="exportFormat !== 'example'" class="btn" @click="copyExport">
               {{ copySuccess ? '✓ 已复制' : '复制' }}
+            </button>
+            <button v-else class="btn" @click="downloadExample">
+              下载 JSON
             </button>
           </div>
         </div>
@@ -290,20 +346,57 @@
             <button class="icon-btn" @click="showImport = false">✕</button>
           </div>
 
+          <div class="modal-tabs">
+            <button class="modal-tab" :class="{ active: importTab === 'examples' }"
+              @click="switchImportTab('examples')">
+              从示例库导入
+            </button>
+            <button class="modal-tab" :class="{ active: importTab === 'file' }" @click="switchImportTab('file')">
+              从文件/粘贴导入
+            </button>
+          </div>
+
           <div class="modal-body">
-            <div class="import-tip">
-              支持粘贴或上传 JSON 配置，格式与「导出 → JSON」一致。
-            </div>
+            <!-- 示例库 -->
+            <template v-if="importTab === 'examples'">
+              <div v-if="examplesLoading" class="hint">正在加载示例库…</div>
 
-            <div class="import-actions">
-              <label class="btn ghost small">
-                选择 JSON 文件
-                <input type="file" accept=".json,application/json" style="display: none" @change="onFileSelect" />
-              </label>
-              <span class="hint" style="margin: 0">或直接粘贴到下方</span>
-            </div>
+              <div v-else-if="examplesError" class="hint err">{{ examplesError }}</div>
 
-            <textarea v-model="importText" rows="10" placeholder='{
+              <div v-else-if="!examples.length" class="hint">
+                示例库为空。欢迎贡献第一个 example！
+              </div>
+
+              <div v-else class="example-list">
+                <div v-for="ex in examples" :key="ex.filename" class="example-item" @click="importExample(ex)">
+                  <div class="example-item-head">
+                    <span class="example-item-name">{{ ex.name }}</span>
+                    <span v-if="ex.author" class="example-item-author">@{{ ex.author }}</span>
+                  </div>
+                  <div v-if="ex.description" class="example-item-desc">{{ ex.description }}</div>
+                  <div class="example-item-meta">
+                    {{ Object.keys(ex.config.questions || {}).length }} 个问题
+                    <span v-if="ex.cases && ex.cases.length"> · {{ ex.cases.length }} 个用例</span>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <!-- 文件 / 粘贴 -->
+            <template v-else>
+              <div class="import-tip">
+                支持粘贴或上传 JSON 配置，格式与「导出 → JSON」一致。
+              </div>
+
+              <div class="import-actions">
+                <label class="btn ghost small">
+                  选择 JSON 文件
+                  <input type="file" accept=".json,application/json" style="display: none" @change="onFileSelect" />
+                </label>
+                <span class="hint" style="margin: 0">或直接粘贴到下方</span>
+              </div>
+
+              <textarea v-model="importText" rows="10" placeholder='{
   "state": "...",
   "questions": {
     "sentiment": {
@@ -314,14 +407,15 @@
   }
 }' class="import-textarea" />
 
-            <div v-if="importError" class="hint err" style="margin-top: 8px">
-              {{ importError }}
-            </div>
+              <div v-if="importError" class="hint err" style="margin-top: 8px">
+                {{ importError }}
+              </div>
+            </template>
           </div>
 
           <div class="modal-foot">
             <button class="btn ghost" @click="showImport = false">取消</button>
-            <button class="btn" @click="doImport">导入</button>
+            <button v-if="importTab === 'file'" class="btn" @click="doImport">导入</button>
           </div>
         </div>
       </div>
@@ -397,7 +491,23 @@ const formats = [
   { id: 'javascript', label: 'JavaScript' },
   { id: 'curl', label: 'cURL' },
   { id: 'json', label: 'JSON' },
+  { id: 'example', label: '导出为 Example' },
 ]
+
+const currentExampleName = ref('')
+
+const importTab = ref('file')
+const examples = ref([])
+const examplesLoading = ref(false)
+const examplesError = ref('')
+
+const exampleForm = reactive({
+  name: '',
+  description: '',
+  author: '',
+  cases: [],
+})
+const exampleFormError = ref('')
 
 // ---------- 校验 ----------
 const nameError = (idx) => {
@@ -417,6 +527,7 @@ const clearAll = () => {
   questions.splice(0, questions.length, newQuestion())
   result.value = null
   error.value = ''
+  currentExampleName.value = ''
 }
 
 const loadExample = () => {
@@ -629,6 +740,7 @@ const exportWarn = computed(() => {
 // ---------- 导出 / 导入交互 ----------
 const openExport = () => {
   copySuccess.value = false
+  exampleFormError.value = ''
   showExport.value = true
 }
 
@@ -655,6 +767,7 @@ const copyExport = async () => {
 const openImport = () => {
   importText.value = ''
   importError.value = ''
+  importTab.value = 'file'
   showImport.value = true
 }
 
@@ -730,8 +843,160 @@ const doImport = () => {
   state.value = typeof data.state === 'string' ? data.state : ''
   stateOpen.value = !!state.value.trim()
   questions.splice(0, questions.length, ...newQs)
+  currentExampleName.value = ''
   showImport.value = false
   importText.value = ''
+}
+
+const addCase = () => {
+  exampleForm.cases.push({ state: '', note: '' })
+}
+
+const buildConfigFromCurrent = () => {
+  const qs = cleanQuestions()
+  const st = state.value.trim()
+  const payload = { questions: {} }
+  if (st) payload.state = st
+  for (const q of qs) {
+    const obj = { type: q.type, instructions: q.instructions }
+    if (q.type === 'choice') {
+      obj.criteria = {}
+      for (const it of q.criteriaMap) obj.criteria[it.key] = it.value
+    } else if (q.type === 'score') {
+      obj.criteria = q.criteriaList
+    }
+    payload.questions[q.name] = obj
+  }
+  return payload
+}
+
+const sanitizeFilenamePart = (s) => {
+  return String(s || '')
+    .replace(/[\/\\:*?"<>|]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .trim()
+}
+
+const downloadExample = () => {
+  exampleFormError.value = ''
+
+  const name = exampleForm.name.trim()
+  if (!name) {
+    exampleFormError.value = '请填写名称'
+    return
+  }
+
+  const config = buildConfigFromCurrent()
+  if (!Object.keys(config.questions).length) {
+    exampleFormError.value = '当前没有问题配置，无法导出'
+    return
+  }
+
+  const author = exampleForm.author.trim()
+  const payload = {
+    name,
+    description: exampleForm.description.trim(),
+    author,
+    config,
+    cases: exampleForm.cases
+      .filter((c) => c.state.trim() || c.note.trim())
+      .map((c) => ({
+        note: c.note.trim(),
+        state: c.state.trim(),
+      })),
+  }
+
+  const base = sanitizeFilenamePart(name) || 'example'
+  const suffix = author ? `-${sanitizeFilenamePart(author)}` : ''
+  const filename = `${base}${suffix}.json`
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+const switchImportTab = (tab) => {
+  importTab.value = tab
+  if (tab === 'examples' && !examples.value.length && !examplesLoading.value) {
+    loadExamples()
+  }
+}
+
+const loadExamples = async () => {
+  examplesLoading.value = true
+  examplesError.value = ''
+  try {
+    const { data } = await axios.get(`${API_BASE}/api/examples`, { timeout: 15000 })
+    examples.value = data.examples || []
+  } catch (e) {
+    if (e.code === 'ERR_NETWORK') {
+      examplesError.value = `无法连接到后端服务，请确认 FastAPI 已在 ${API_BASE} 启动。`
+    } else {
+      examplesError.value = e.message || '加载示例库失败'
+    }
+  } finally {
+    examplesLoading.value = false
+  }
+}
+
+const applyConfig = (config) => {
+  const newQs = []
+  for (const [name, cfg] of Object.entries(config.questions || {})) {
+    if (!cfg || typeof cfg !== 'object') continue
+    const type = cfg.type
+    if (!['noul', 'choice', 'score'].includes(type)) continue
+
+    const q = {
+      name: String(name),
+      type,
+      instructions: String(cfg.instructions || ''),
+      criteriaMap: [
+        { key: '', value: '' },
+        { key: '', value: '' },
+      ],
+      criteriaList: ['', ''],
+    }
+
+    if (type === 'choice' && cfg.criteria && typeof cfg.criteria === 'object') {
+      const entries = Object.entries(cfg.criteria).map(([k, v]) => ({
+        key: String(k),
+        value: String(v ?? ''),
+      }))
+      if (entries.length) q.criteriaMap = entries
+    }
+
+    if (type === 'score' && Array.isArray(cfg.criteria)) {
+      const list = cfg.criteria.map((s) => String(s ?? '')).filter(Boolean)
+      if (list.length) q.criteriaList = list
+    }
+
+    newQs.push(newQuestion(q))
+  }
+
+  if (!newQs.length) return false
+
+  state.value = typeof config.state === 'string' ? config.state : ''
+  stateOpen.value = !!state.value.trim()
+  questions.splice(0, questions.length, ...newQs)
+  return true
+}
+
+const importExample = (ex) => {
+  if (!applyConfig(ex.config)) {
+    importError.value = '该示例的配置不完整，无法导入'
+    return
+  }
+  currentExampleName.value = ex.name
+  showImport.value = false
+  saveSnapshot()
 }
 
 // ---------- 提交 ----------
@@ -832,6 +1097,7 @@ const saveSnapshot = () => {
         criteriaList: [...q.criteriaList],
       })),
       result: result.value,
+      currentExampleName: currentExampleName.value,
       savedAt: Date.now(),
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snap))
@@ -872,6 +1138,7 @@ const loadSnapshot = () => {
         )
       }
       if (snap.result) result.value = snap.result
+      if (snap.currentExampleName) currentExampleName.value = snap.currentExampleName
     }
     const savedKey = localStorage.getItem(KEY_STORAGE)
     if (savedKey) {
@@ -1984,5 +2251,149 @@ textarea::-webkit-scrollbar-thumb:hover {
   min-height: 220px;
   white-space: pre;
   overflow: auto;
+}
+
+.current-config {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  background: rgba(107, 140, 255, 0.08);
+  border: 1px solid rgba(107, 140, 255, 0.25);
+  border-radius: 9px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.current-config-icon {
+  font-size: 14px;
+  flex: 0 0 auto;
+}
+
+.current-config-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.current-config-clear {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.current-config-clear:hover {
+  color: var(--danger);
+  background: rgba(239, 95, 107, 0.1);
+}
+
+.example-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.example-item {
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.example-item:hover {
+  border-color: var(--accent);
+  background: rgba(107, 140, 255, 0.06);
+}
+
+.example-item-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.example-item-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.example-item-author {
+  font-size: 11.5px;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.example-item-desc {
+  font-size: 12.5px;
+  color: var(--text-2);
+  margin-bottom: 4px;
+}
+
+.example-item-meta {
+  font-size: 11.5px;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.example-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.example-form .field {
+  margin-top: 0;
+}
+
+.example-cases-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.case-card {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.case-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.case-index {
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+
+.case-card .field {
+  margin-top: 10px;
+}
+
+.case-card .field:first-of-type {
+  margin-top: 0;
 }
 </style>
