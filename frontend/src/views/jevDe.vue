@@ -333,7 +333,7 @@
 import { reactive, ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 
-const API_BASE = 'http://localhost:8000'
+const API_BASE = ''
 const STORAGE_KEY = 'jev_studio_snapshot_v5'
 const KEY_STORAGE = 'jev_studio_apikey_v5'
 
@@ -810,7 +810,7 @@ const submit = async () => {
       const d = e.response.data?.detail
       error.value = typeof d === 'string' ? d : JSON.stringify(d, null, 2)
     } else if (e.code === 'ERR_NETWORK') {
-      error.value = `无法连接到后端服务，请确认 FastAPI 已在 ${API_BASE} 启动。`
+      error.value = `无法连接到后端服务，请确认 FastAPI 已启动。`
     } else {
       error.value = e.message || '请求失败'
     }
