@@ -20,11 +20,6 @@ cd frontend
 npm install
 npm run dev
 ```
-[对方] 你是不是忘了今天是什么日子
-[自己] 记得记得 我想想
-[对方] 你最好是
-[自己] 是你的生日吗?
-[对方] 对,你说的都对,你说确定吗?
 
 打开 http://localhost:5173，填入你的 TypeSafe API Key 即可开始。
 
