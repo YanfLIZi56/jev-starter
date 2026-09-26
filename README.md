@@ -73,7 +73,7 @@ npm run dev
 1. 在左侧配置你的问题（Noul / Choice / Score）
 2. 填入 state（可选，留空则模型仅根据 instructions 独立作答）
 3. 点「提交请求」看结果
-4. 满意后点「导出」，选择 Python / JavaScript / cURL / JSON，复制代码到你的项目
+4. 满意后点「导出代码」，选择 Python / JavaScript / cURL / JSON，复制代码到你的项目
 5. 配好的配置会自动存到浏览器本地，下次打开还在
 
 ---
